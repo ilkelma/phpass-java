@@ -8,19 +8,26 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Java port of the PHPass library. Use createHash(String password) to create a
- * new hash of a password (new users, new passwords, etc) Use isMatch(String
- * password, String currentHash) to verify a password
- * 
- * @author huan.lai
- * 
+ * Generates and verifies password hashes.
  */
 public class PasswordHasher {
-  private static final Logger logger = Logger.getLogger("com.mollom.passwordhasher");
-  private static final char[] BASE64_CHAR_MAPPING = { '.', '/', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I',
-      'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
-      'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z' };
+
+  private static final Logger logger = Logger.getLogger("com.mollom.phpass");
+
+  /**
+   * Non-standard compliant Base64 character mapping.
+   *
+   * Phpass's Base64 character mapping table deviates from RFC 2045:
+   * ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/
+   */
+  private static final char[] BASE64_CHAR_MAPPING = {
+    '.', '/',
+    '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
+    'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'};
+
   private static final int HASH_ITERATIONS = 15;
+
   private static final int HASH_SIZE = 55;
 
   private MessageDigest messageDigest;
@@ -38,16 +45,16 @@ public class PasswordHasher {
   /**
    * @return If the password matches the hash.
    */
-  public boolean isMatch(String password, String currentHash) {
-    // The first 12 digits of the hash is used to modify the encryption
-    String setting = currentHash.substring(0, 12);
-    return currentHash.equals(encrypt(password, setting));
+  public boolean isMatch(String password, String storedHash) {
+    // The first 12 digits of the hash is used to modify the encryption.
+    String setting = storedHash.substring(0, 12);
+    return storedHash.equals(encrypt(password, setting));
   }
 
   /**
    * The first 3 characters of the setting is ignored; it is used to describe
    * the hashing algorithm, but we're always using SHA-512
-   * 
+   *
    * @return Encrypted hash of the password using the given settings
    */
   private String encrypt(String password, String setting) {
@@ -122,13 +129,10 @@ public class PasswordHasher {
    * We have to use our own encode Base64 function here the one used by PHPass
    * does not follow RFC 2045, and hence no other libraries out there actually
    * supports it.
-   * 
-   * Deviations from standard: - The alphabet is defined as
-   * ./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz instead of
-   * ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/ - If the
-   * end contains fewer than 24 input bits, do NOT pad, just stop producing
-   * output bits
-   * 
+   *
+   * If the end contains fewer than 24 input bits, do NOT pad, stop producing
+   * output bits.
+   *
    * @return Base64 encoding of the given digest
    */
   private String encodeBase64(byte[] input) {
@@ -188,7 +192,7 @@ public class PasswordHasher {
   }
 
   /**
-   * Because java stores bytes as signed a signed value (-128, 127), we need to
+   * Because Java stores bytes as signed a signed value (-128, 127), we need to
    * do a conversion to get the (0, 255) unsigned byte value that the algorithm
    * expects
    */
